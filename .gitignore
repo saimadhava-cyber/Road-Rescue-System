@@ -1,0 +1,6 @@
+node_modules/
+.env
+Test Results/
+reports/
+.DS_Store
+Coverage/

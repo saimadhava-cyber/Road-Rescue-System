@@ -1,0 +1,110 @@
+name: Appium E2E and GH Pages Reports
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "appium-reports"
+  cancel-in-progress: true
+
+jobs:
+  appium-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Enable KVM group perms
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run Appium Tests on Android Emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          target: default
+          arch: x86_64
+          profile: Nexus 6
+          script: npm run test:appium
+        env:
+          GITHUB_RUN_NUMBER: ${{ github.run_number }}
+          REPORT_FILENAME: Automation_Test_Report
+
+      - name: Upload Test Results Artifacts
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: Appium-Test-Reports
+          path: Test Results/
+
+      - name: Publish Test Summary
+        if: always()
+        run: |
+          if [ -f "Test Results/Summary/summary.md" ]; then
+            cat "Test Results/Summary/summary.md" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## Test Execution Summary not generated (Tests crashed early)" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  deploy-reports:
+    needs: appium-tests
+    if: always()
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}reports/latest/execution-report.html
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          ref: gh-pages
+          continue-on-error: true # Might not exist yet
+
+      - name: Download Artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: Appium-Test-Reports
+          path: new-reports/
+
+      - name: Structure Pages Directory
+        run: |
+          mkdir -p public/reports/latest
+          mkdir -p public/reports/history/build-${{ github.run_number }}
+          
+          # Copy everything into latest
+          cp -r new-reports/* public/reports/latest/
+          
+          # Copy everything into history for archival
+          cp -r new-reports/* public/reports/history/build-${{ github.run_number }}/
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v3
+
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './public'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

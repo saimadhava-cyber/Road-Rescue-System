@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">road-rescue-system</string>
+    <string name="title_activity_main">road-rescue-system</string>
+    <string name="package_name">com.roadrescue.system</string>
+    <string name="custom_url_scheme">com.roadrescue.system</string>
+</resources>

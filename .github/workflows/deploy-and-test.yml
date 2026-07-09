@@ -1,0 +1,101 @@
+name: Deploy to GitHub Pages and E2E Test
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow one concurrent deployment
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  deploy-and-test:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      # In our case, the frontend is already inside the 'www' folder as static files.
+      # If there was a build step (like React/Vue), it would go here.
+      - name: Prepare build artifacts (if applicable)
+        run: |
+          if [ -f "package.json" ]; then
+            if jq -e '.scripts.build' package.json > /dev/null; then
+              npm run build
+            fi
+          fi
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v3
+
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './www' # Deploying the static frontend
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Wait for GitHub Pages Deployment
+        run: |
+          echo "Waiting for deployment to be available at ${{ steps.deployment.outputs.page_url }}..."
+          # Simple polling mechanism to ensure page is up
+          timeout 120 bash -c 'until curl -s -f ${{ steps.deployment.outputs.page_url }}; do sleep 5; done'
+          echo "Deployment is live!"
+
+      # Setup Chrome for Selenium
+      - name: Setup Chrome
+        uses: browser-actions/setup-chrome@v1
+      - name: Setup ChromeDriver
+        uses: nanasess/setup-chromedriver@v2
+
+      - name: Run Selenium Tests Against Live URL
+        env:
+          BASE_URL: ${{ steps.deployment.outputs.page_url }}
+          GITHUB_ACTIONS: true
+        run: |
+          export DISPLAY=:99
+          chromedriver --url-base=/wd/hub &
+          sudo Xvfb -ac :99 -screen 0 1280x1024x24 > /dev/null 2>&1 &
+          
+          # Run tests with Mocha
+          npx mocha ./globalHooks.js ./selenium-tests/specs/web-e2e.spec.js --timeout 120000 --exit
+
+      - name: Upload Test Reports Artifacts
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: Selenium-Test-Reports
+          path: Test Results/
+
+      - name: Publish Test Summary
+        if: always()
+        run: |
+          if [ -f "Test Results/Summary/summary.md" ]; then
+            cat "Test Results/Summary/summary.md" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## Test Execution Summary not generated (Tests crashed early)" >> $GITHUB_STEP_SUMMARY
+          fi

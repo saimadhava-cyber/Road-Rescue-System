@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Road Rescue System - Real-time Accident Detection & Assistance</title>
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="style.css">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Leaflet Map CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- PWA Manifest & Theme Color -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#f43f5e">
+</head>
+<body>
+
+  <div class="container">
+
+    <!-- PHONE MOCKUP -->
+    <div class="phone-mockup">
+      <!-- Notch (Camera, Dynamic Island) -->
+      <div class="phone-notch" id="dynamic-island">
+        <div class="phone-notch-camera"></div>
+        <div class="phone-notch-content" id="dynamic-island-content">
+          <!-- Populated dynamically when alert spikes -->
+        </div>
+      </div>
+
+      <!-- iOS Status Bar -->
+      <div class="phone-status-bar">
+        <div class="status-bar-time" id="status-time">10:32</div>
+        <div class="status-bar-icons">
+          <i class="fa-solid fa-signal" id="status-signal"></i>
+          <i class="fa-solid fa-wifi" id="status-wifi"></i>
+          <i class="fa-solid fa-battery-three-quarters" id="status-battery-icon"></i>
+        </div>
+      </div>
+
+      <!-- Offline Mode Banner -->
+      <div class="offline-banner" id="app-offline-banner">
+        <i class="fa-solid fa-plane-slash"></i> Offline SOS Mode Active. Local sensors armed.
+      </div>
+
+      <!-- APP CONTENT AREA -->
+      <div class="phone-content">
+        
+        <!-- LOGIN SCREEN -->
+        <div class="screen" id="screen-login" style="padding-top: 3rem; justify-content: center; align-items: stretch; gap: 1.25rem; z-index: 180; background: #020617;">
+          <!-- Left Panel: Branding -->
+          <div class="auth-left-panel" style="text-align: center;">
+            <div style="display: inline-flex; width: 55px; height: 55px; border-radius: 18px; background: rgba(244, 63, 94, 0.1); border: 1.5px solid rgba(244, 63, 94, 0.2); align-items: center; justify-content: center; margin-bottom: 1rem; box-shadow: 0 0 15px var(--color-red-glow);">
+              <i class="fa-solid fa-truck-medical" style="color: var(--color-red); font-size: 1.6rem;"></i>
+            </div>
+            <h2 style="font-family: var(--font-family); font-weight: 800; font-size: 1.65rem; letter-spacing: 0.5px; background: linear-gradient(135deg, #fff 0%, var(--text-secondary) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">ROAD RESCUE</h2>
+            <p style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.25rem;">Real-time Accident Detection & Safety</p>
+          </div>
+
+          <!-- Right Panel: Form Fields and Buttons -->
+          <div class="auth-right-panel" style="display: flex; flex-direction: column; gap: 0.8rem; width: 100%;">
+            <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 0.5rem;">
+              <div class="form-field" style="margin-bottom: 0;">
+                <label>Email Address</label>
+                <div style="position: relative;">
+                  <i class="fa-solid fa-envelope" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.8rem;"></i>
+                  <input type="email" id="login-email" placeholder="alex@rescue.com" style="padding-left: 36px;">
+                </div>
+              </div>
+              <div class="form-field" style="margin-bottom: 0;">
+                <label>Password</label>
+                <div style="position: relative;">
+                  <i class="fa-solid fa-lock" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.8rem;"></i>
+                  <input type="password" id="login-password" placeholder="••••••••" style="padding-left: 36px;">
+                </div>
+              </div>
+              <div id="login-error-msg" style="color: var(--color-red); font-size: 0.7rem; text-align: center; display: none;">Invalid email or password.</div>
+            </div>
+
+            <button class="btn btn-primary" id="btn-login-submit" style="border-radius: 14px; padding: 0.8rem; font-weight: 700; width: 100%; box-shadow: 0 4px 12px var(--color-blue-glow);">
+              <i class="fa-solid fa-right-to-bracket"></i> Sign In
+            </button>
+
+            <div style="text-align: center; font-size: 0.75rem;">
+              <span style="color: var(--text-muted);">Don't have an account? </span>
+              <a href="#" style="color: var(--color-blue); text-decoration: none; font-weight: 700;" onclick="showAuthScreen('register')">Sign Up</a>
+            </div>
+
+            <div style="border-top: 1px solid var(--border-color); padding-top: 0.75rem; margin-top: 0.25rem; text-align: center;">
+              <button class="btn btn-outline" id="btn-login-demo" style="font-size: 0.75rem; padding: 0.5rem 1rem; border-radius: 10px; border-color: rgba(255,255,255,0.08);">
+                <i class="fa-solid fa-user-astronaut"></i> Quick Demo Bypass
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- REGISTER SCREEN -->
+        <div class="screen active" id="screen-register" style="padding-top: 1.5rem; justify-content: center; align-items: stretch; gap: 1rem; z-index: 180; background: #020617;">
+          <!-- Left Panel: Branding -->
+          <div class="auth-left-panel" style="text-align: center; margin-bottom: 0.25rem;">
+            <h2 style="font-family: var(--font-family); font-weight: 800; font-size: 1.4rem; letter-spacing: 0.5px; color: white;">CREATE ACCOUNT</h2>
+            <p style="font-size: 0.68rem; color: var(--text-muted); margin-top: 0.15rem;">Enter details to protect your vehicle</p>
+          </div>
+
+          <!-- Right Panel: Form Inputs & Submit -->
+          <div class="auth-right-panel" style="display: flex; flex-direction: column; gap: 0.8rem; width: 100%;">
+            <div style="display: flex; flex-direction: column; gap: 0.6rem; max-height: 420px; overflow-y: auto; padding-right: 2px;">
+              <div class="form-field" style="margin-bottom: 0;">
+                <label>Full Name</label>
+                <input type="text" id="reg-name" placeholder="Alex Rivera">
+              </div>
+              <div class="form-field" style="margin-bottom: 0;">
+                <label>Email Address</label>
+                <input type="email" id="reg-email" placeholder="alex@rescue.com">
+              </div>
+              <div class="form-field" style="margin-bottom: 0;">
+                <label>Password</label>
+                <input type="password" id="reg-password" placeholder="••••••••">
+              </div>
+              <div class="form-field" style="margin-bottom: 0;">
+                <label>Vehicle Make & Model</label>
+                <input type="text" id="reg-vehicle" placeholder="Tesla Model Y">
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                <div class="form-field" style="margin-bottom: 0;">
+                  <label>Plate Number</label>
+                  <input type="text" id="reg-plate" placeholder="8XYZ98">
+                </div>
+                <div class="form-field" style="margin-bottom: 0;">
+                  <label>Blood Type</label>
+                  <select id="reg-blood">
+                    <option value="O-Positive (O+)">O+</option>
+                    <option value="O-Negative (O-)">O-</option>
+                    <option value="A-Positive (A+)">A+</option>
+                    <option value="A-Negative (A-)">A-</option>
+                    <option value="B-Positive (B+)">B+</option>
+                    <option value="B-Negative (B-)">B-</option>
+                    <option value="AB-Positive (AB+)">AB+</option>
+                    <option value="AB-Negative (AB-)">AB-</option>
+                  </select>
+                </div>
+              </div>
+              <div id="reg-error-msg" style="color: var(--color-red); font-size: 0.7rem; text-align: center; display: none;">All fields are required.</div>
+            </div>
+
+            <button class="btn btn-primary" id="btn-register-submit" style="border-radius: 14px; padding: 0.8rem; font-weight: 700; width: 100%; box-shadow: 0 4px 12px var(--color-blue-glow);">
+              <i class="fa-solid fa-user-plus"></i> Sign Up
+            </button>
+
+            <div style="text-align: center; font-size: 0.75rem; margin-top: 0.25rem;">
+              <span style="color: var(--text-muted);">Already have an account? </span>
+              <a href="#" style="color: var(--color-blue); text-decoration: none; font-weight: 700;" onclick="showAuthScreen('login')">Log In</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- 1. HOME SCREEN -->
+        <div class="screen" id="screen-home">
+          <!-- Header -->
+          <div class="screen-header">
+            <div>
+              <p>Welcome back,</p>
+              <h2 style="font-family: var(--font-family)">Alex Rivera</h2>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <div style="background: var(--bg-card); border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 12px; font-size: 0.75rem; font-weight: 700; color: var(--color-green);">
+                <i class="fa-solid fa-shield-halved"></i> Active Protect
+              </div>
+              <button onclick="showTab('profile')" style="background: var(--bg-card); border: 1px solid var(--border-color); width: 32px; height: 32px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--color-blue); cursor: pointer; padding: 0;">
+                <i class="fa-solid fa-user"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Interactive Map -->
+          <div class="home-map-container">
+            <div class="map-overlay-badge">
+              <span></span> Live Coordinates (GPS)
+            </div>
+            <!-- Address Overlay badge -->
+            <div class="map-overlay-address" id="map-address-overlay">
+              <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+                <div>
+                  <i class="fa-solid fa-location-dot" style="color:var(--color-blue)"></i>
+                  <span id="txt-map-street">Mount Road, Chennai, TN, India</span>
+                </div>
+                <div style="font-size:0.7rem; color:var(--text-muted); display:flex; align-items:center; gap:4px;" id="txt-map-weather">
+                  <i class="fa-solid fa-cloud-sun" style="color:var(--color-blue)"></i> <span>68°F</span>
+                </div>
+              </div>
+            </div>
+            <!-- Floating GPS Tracker Button -->
+            <button id="btn-gps-tracker" class="map-gps-btn" title="Toggle Live GPS Tracking">
+              <i class="fa-solid fa-location-crosshairs"></i>
+            </button>
+            <div id="map"></div>
+          </div>
+
+          <!-- Speed & Quick Metrics Grid & SOS Button wrapper for landscape positioning -->
+          <div id="screen-home-controls-wrapper">
+            <!-- Speed & Quick Metrics Grid -->
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-bottom: 0.75rem;">
+              <div class="dash-card" style="margin-bottom: 0; padding: 0.6rem; text-align: center;">
+                <span style="font-size: 0.65rem; color: var(--text-muted);">SPEED</span>
+                <div style="font-family: var(--font-family); font-size: 1.15rem; font-weight: 700; color: var(--color-blue);" id="app-speed-val">45 mph</div>
+              </div>
+              <div class="dash-card" style="margin-bottom: 0; padding: 0.6rem; text-align: center;">
+                <span style="font-size: 0.65rem; color: var(--text-muted);">SAFETY SCORE</span>
+                <div style="font-family: var(--font-family); font-size: 1.15rem; font-weight: 700; color: var(--color-green);" id="app-safety-val">88%</div>
+              </div>
+              <div class="dash-card" style="margin-bottom: 0; padding: 0.6rem; text-align: center;">
+                <span style="font-size: 0.65rem; color: var(--text-muted);">CRASH ACCEL</span>
+                <div style="font-family: var(--font-family); font-size: 1.15rem; font-weight: 700; color: #fff;" id="app-gforce-val">1.0 G</div>
+              </div>
+            </div>
+
+            <!-- Big Emergency SOS Button -->
+            <div class="sos-button-wrapper">
+              <div class="sos-ripple-1"></div>
+              <div class="sos-ripple-2"></div>
+              <button class="big-sos-btn" id="btn-trigger-sos">
+                <i class="fa-solid fa-circle-exclamation"></i>
+                SOS
+                <span>TAP OR HOLD</span>
+              </button>
+              <p style="font-size: 0.7rem; color: var(--text-muted); text-align: center; margin-top: 0.75rem;">
+                <i class="fa-solid fa-bolt"></i> Initiates immediate police, medical, and family alerts
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. SERVICES SCREEN -->
+        <div class="screen" id="screen-services">
+          <div class="screen-header">
+            <div>
+              <h2 style="font-family: var(--font-family)">Services</h2>
+              <p>Instant safety and coordination tools</p>
+            </div>
+          </div>
+
+          <!-- Left Column: Services Grid Group -->
+          <div class="services-left-col">
+            <!-- Section 1: Emergency SOS Dispatchers -->
+            <h3 style="font-size: 0.85rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem; font-weight: 700; letter-spacing: 0.5px;">Emergency Dispatch</h3>
+            <div class="services-grid">
+              <div class="service-card sc-red" onclick="triggerServiceAction('Ambulance')">
+                <i class="fa-solid fa-truck-medical"></i>
+                <h4>Ambulance</h4>
+                <p>Direct trauma center dispatch</p>
+              </div>
+              <div class="service-card sc-blue" onclick="triggerServiceAction('Police')">
+                <i class="fa-solid fa-handcuffs"></i>
+                <h4>Police Dept</h4>
+                <p>Report local crime or crash</p>
+              </div>
+              <div class="service-card sc-orange" onclick="triggerServiceAction('Rescue')">
+                <i class="fa-solid fa-fire-extinguisher"></i>
+                <h4>Fire & Rescue</h4>
+                <p>Vehicle extraction units</p>
+              </div>
+              <div class="service-card sc-green" onclick="triggerServiceAction('Family')">
+                <i class="fa-solid fa-people-group"></i>
+                <h4>ICE Contacts</h4>
+                <p>Send coordinates to family</p>
+              </div>
+            </div>
+
+            <!-- Section 2: Roadside Assistance -->
+            <h3 style="font-size: 0.85rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem; font-weight: 700; letter-spacing: 0.5px;">Roadside Assistance</h3>
+            <div class="services-grid">
+              <div class="service-card sc-blue" onclick="openAssistanceForm('Towing')">
+                <i class="fa-solid fa-truck-pickup"></i>
+                <h4>Flatbed Tow</h4>
+                <p>Towing to nearest certified shop</p>
+              </div>
+              <div class="service-card sc-green" onclick="openAssistanceForm('Flat Tyre')">
+                <i class="fa-solid fa-screwdriver-wrench"></i>
+                <h4>Tyre Change</h4>
+                <p>Flat tyre puncture repair</p>
+              </div>
+              <div class="service-card sc-orange" onclick="openAssistanceForm('Jump Start')">
+                <i class="fa-solid fa-car-battery"></i>
+                <h4>Battery Boost</h4>
+                <p>Jump-start dead batteries</p>
+              </div>
+              <div class="service-card sc-red" onclick="openAssistanceForm('Fuel Delivery')">
+                <i class="fa-solid fa-gas-pump"></i>
+                <h4>Fuel Delivery</h4>
+                <p>Emergency fuel top-up</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: Diagnostics and Tools Group -->
+          <div class="services-right-col">
+            <!-- Section 3: Smart Vehicle Diagnostics -->
+            <div class="dash-card">
+              <div class="dash-card-header">
+                <div class="dash-card-title"><i class="fa-solid fa-microchip" style="color: var(--color-green)"></i> AI Diagnostics Scan</div>
+                <a href="#" class="dash-card-action" onclick="showTab('activity')">View History</a>
+              </div>
+              <div class="diag-gauge-wrapper">
+                <div class="diag-gauge" id="dg-engine">
+                  <div class="diag-gauge-circle">OK</div>
+                  <span>Engine</span>
+                </div>
+                <div class="diag-gauge" id="dg-battery">
+                  <div class="diag-gauge-circle">94%</div>
+                  <span>Battery</span>
+                </div>
+                <div class="diag-gauge" id="dg-tyre">
+                  <div class="diag-gauge-circle">32</div>
+                  <span>Tyre (PSI)</span>
+                </div>
+              </div>
+              <div style="height: 120px; position: relative; margin: 0.5rem 0; width: 100%;">
+                <canvas id="radarChart"></canvas>
+              </div>
+              <p id="app-diagnostics-rec" style="font-size: 0.75rem; color: var(--text-secondary); line-height: 1.4; border-top: 1px solid var(--border-color); padding-top: 0.6rem; margin-top: 0.4rem;">
+                AI Scan: All vehicle modules reports nominal operation.
+              </p>
+            </div>
+
+            <!-- Section 4: Hazard & Manual Buttons -->
+            <button class="btn btn-outline btn-block" style="border-radius: 16px; border-color: rgba(255,255,255,0.15);" onclick="openHazardModal()">
+              <i class="fa-solid fa-triangle-exclamation" style="color: var(--color-orange)"></i> Report Road Hazard
+            </button>
+            <button class="btn btn-outline btn-block" style="border-radius: 16px; border-color: rgba(255,255,255,0.15); margin-top: 0.5rem;" onclick="openManualModal()">
+              <i class="fa-solid fa-book-medical" style="color: var(--color-blue)"></i> Survival & First-Aid Manual
+            </button>
+          </div>
+        </div>
+
+        <!-- 3. ACTIVITY SCREEN -->
+        <div class="screen" id="screen-activity">
+          <div class="screen-header">
+            <div>
+              <h2 style="font-family: var(--font-family)">Activity</h2>
+              <p>History & Safety Analytics</p>
+            </div>
+          </div>
+
+          <!-- Safety score dashboard -->
+          <div class="dash-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+              <span style="font-size: 0.85rem; font-weight: 700;">Drive Safety Index</span>
+              <span class="score-badge" id="activity-score-badge">88</span>
+            </div>
+            <div class="analytics-chart-container">
+              <canvas id="safetyChart"></canvas>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); margin-top: 0.7rem; border-top: 1px solid var(--border-color); padding-top: 0.6rem;">
+              <span>Sudden Brakes: <strong style="color: var(--color-orange)" id="app-brake-count">3</strong></span>
+              <span>Overspeed events: <strong style="color: var(--color-red)" id="app-speed-count">2</strong></span>
+            </div>
+          </div>
+
+          <!-- Emergency Response logs wrapper for landscape positioning -->
+          <div class="activity-right-wrapper">
+            <h3 style="font-size: 0.85rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem; font-weight: 700; letter-spacing: 0.5px;">Rescue History</h3>
+            <div id="activity-history-list" style="display: flex; flex-direction: column; gap: 0.5rem; width: 100%;">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. CONTACTS SCREEN -->
+        <div class="screen" id="screen-contacts">
+          <div class="screen-header">
+            <div>
+              <h2 style="font-family: var(--font-family)">ICE Contacts</h2>
+              <p>Family & Emergency Dispatchers</p>
+            </div>
+            <div class="contact-action-btn" onclick="addNewICEContact()" title="Add Contact">
+              <i class="fa-solid fa-plus"></i>
+            </div>
+          </div>
+
+          <!-- ICE Contacts List -->
+          <div id="contacts-list" style="margin-bottom: 1.25rem;">
+            <!-- Prepopulated contacts -->
+            <div class="contact-item">
+              <div class="contact-avatar" style="background: var(--color-green); color: white;">D</div>
+              <div class="contact-info">
+                <h5>Daddy</h5>
+                <p>ICE Contact • Notify on SOS</p>
+              </div>
+              <div class="contact-actions">
+                <a href="tel:9876543210" class="contact-action-btn call-btn"><i class="fa-solid fa-phone"></i></a>
+                <button class="contact-action-btn" onclick="openChatDispatcher('Daddy')"><i class="fa-solid fa-message"></i></button>
+              </div>
+            </div>
+            <div class="contact-item">
+              <div class="contact-avatar" style="background: var(--color-blue); color: white;">B</div>
+              <div class="contact-info">
+                <h5>Brother1</h5>
+                <p>Secondary ICE Contact</p>
+              </div>
+              <div class="contact-actions">
+                <a href="tel:9184526500" class="contact-action-btn call-btn"><i class="fa-solid fa-phone"></i></a>
+                <button class="contact-action-btn" onclick="openChatDispatcher('Brother1')"><i class="fa-solid fa-message"></i></button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dispatch Chat Room Toggle button -->
+          <div class="dash-card" style="margin-top: auto; border-color: rgba(14, 165, 233, 0.3); background: rgba(14, 165, 233, 0.05);">
+            <div class="dash-card-header" style="margin-bottom: 0.5rem;">
+              <div class="dash-card-title"><i class="fa-solid fa-headset" style="color: var(--color-blue)"></i> Rescue Center Dispatcher</div>
+              <span style="font-size: 0.65rem; color: var(--color-green); display: flex; align-items: center; gap: 3px;">
+                <span style="width:6px;height:6px;background:var(--color-green);border-radius:50%;display:inline-block;"></span> Online
+              </span>
+            </div>
+            <p style="font-size: 0.75rem; color: var(--text-secondary); line-height: 1.4; margin-bottom: 0.75rem;">
+              Connected to local dispatcher coordinates. Text dispatch directly to request ambulance assistance.
+            </p>
+            <button class="btn btn-primary btn-block" style="border-radius: 12px;" onclick="openChatDispatcher('Emergency Dispatcher')">
+              <i class="fa-solid fa-comments"></i> Enter Live Chat
+            </button>
+          </div>
+        </div>
+
+        <!-- 5. PROFILE SCREEN -->
+        <div class="screen" id="screen-profile">
+          <div class="screen-header" style="align-items: center;">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <button onclick="showTab('home')" style="background: transparent; border: none; color: white; cursor: pointer; font-size: 1.1rem; padding: 0;">
+                <i class="fa-solid fa-chevron-left"></i>
+              </button>
+              <div>
+                <h2 style="font-family: var(--font-family); font-size: 1.25rem; margin: 0;">User Profile</h2>
+                <p style="margin: 0; font-size: 0.65rem; color: var(--text-muted);">Medical, Vehicle & Settings</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Left Column: Medical & Vehicle Group -->
+          <div class="profile-left-col">
+            <!-- Medical Card -->
+            <div class="dash-card">
+              <div class="dash-card-header">
+                <div class="dash-card-title" style="color: var(--color-red)"><i class="fa-solid fa-notes-medical"></i> Medical Info (ICE)</div>
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; font-size: 0.75rem;">
+                <div>
+                  <span style="color: var(--text-muted)">Blood Group</span>
+                  <p style="font-weight: 700; font-size: 0.95rem; color: white;">O-Positive (O+)</p>
+                </div>
+                <div>
+                  <span style="color: var(--text-muted)">Allergies</span>
+                  <p style="font-weight: 700; font-size: 0.95rem; color: white;">Penicillin, Nuts</p>
+                </div>
+                <div style="grid-column: span 2;">
+                  <span style="color: var(--text-muted)">Medical Conditions</span>
+                  <p style="font-weight: 700; font-size: 0.85rem; color: white;">Mild Asthma (Inhaler in glovebox)</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Vehicle Card -->
+            <div class="dash-card">
+              <div class="dash-card-header">
+                <div class="dash-card-title" style="color: var(--color-blue)"><i class="fa-solid fa-car"></i> Registered Vehicle</div>
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; font-size: 0.75rem;">
+                <div>
+                  <span style="color: var(--text-muted)">Make / Model</span>
+                  <p style="font-weight: 700; color: white;">Tesla Model Y (2023)</p>
+                </div>
+                <div>
+                  <span style="color: var(--text-muted)">License Plate</span>
+                  <p style="font-weight: 700; color: white;">8XYZ98</p>
+                </div>
+                <div>
+                  <span style="color: var(--text-muted)">Color</span>
+                  <p style="font-weight: 700; color: white;">Midnight Silver</p>
+                </div>
+                <div>
+                  <span style="color: var(--text-muted)">Insurance Provider</span>
+                  <p style="font-weight: 700; color: white;">HDFC ERGO (Pol: #98X-88)</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: Settings & Simulator Group -->
+          <div class="profile-right-col">
+            <!-- Settings -->
+            <div class="dash-card">
+              <div class="dash-card-header">
+                <div class="dash-card-title"><i class="fa-solid fa-gears"></i> Device Configurations</div>
+              </div>
+              <div class="switch-container" style="margin-bottom: 0.75rem; font-size: 0.8rem;">
+                <span>AI Crash Sensitivity (High)</span>
+                <label class="switch">
+                  <input type="checkbox" checked>
+                  <span class="slider"></span>
+                </label>
+              </div>
+              <div class="switch-container" style="margin-bottom: 0.75rem; font-size: 0.8rem;">
+                <span>Automatic Audio Siren</span>
+                <label class="switch">
+                  <input type="checkbox" checked id="setting-siren">
+                  <span class="slider"></span>
+                </label>
+              </div>
+              <div class="switch-container" style="font-size: 0.8rem;">
+                <span>Voice Activated SOS ("Rescue Help")</span>
+                <label class="switch">
+                  <input type="checkbox" id="setting-voice">
+                  <span class="slider"></span>
+                </label>
+              </div>
+              <button class="btn btn-outline" id="btn-logout" style="border-radius: 12px; margin-top: 1.25rem; font-weight: 700; width: 100%; border-color: rgba(244,63,94,0.3); color: var(--color-red); background: rgba(244,63,94,0.03);" onclick="handleLogout()">
+                <i class="fa-solid fa-right-from-bracket"></i> Sign Out
+              </button>
+            </div>
+
+            <!-- Simulator Control Sandbox Card -->
+            <div class="dash-card" style="border-color: rgba(245, 158, 11, 0.35); background: rgba(245, 158, 11, 0.02); margin-top: 1rem; margin-bottom: 0.5rem;">
+              <div class="dash-card-header" onclick="toggleSimulatorCollapse()" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding-bottom: 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                <div class="dash-card-title" style="color: var(--color-orange); font-size: 0.85rem;"><i class="fa-solid fa-flask"></i> RescueSim Sandbox Control</div>
+                <i class="fa-solid fa-chevron-down" id="simulator-chevron" style="font-size: 0.75rem; color: var(--text-muted); transition: transform 0.3s;"></i>
+              </div>
+              
+              <div id="simulator-collapse-content" style="display: none; margin-top: 0.75rem;">
+                
+                <!-- Sensor Simulator -->
+                <div style="margin-bottom: 1rem;">
+                  <h4 style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.5rem;"><i class="fa-solid fa-triangle-exclamation" style="color: var(--color-red)"></i> Accident & Sensor Simulator</h4>
+                  <div class="dash-card" style="padding: 0.6rem; background: rgba(0,0,0,0.2); margin-bottom: 0.5rem; border-color: rgba(255,255,255,0.03);">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.65rem; color: var(--text-secondary); margin-bottom: 0.3rem;">
+                      <span>G-Force Sensor Peak</span>
+                      <span id="lbl-gforce" style="color: var(--color-blue); font-weight: bold;">1.0 Gs (Normal)</span>
+                    </div>
+                    <input type="range" id="sim-gforce" min="0.5" max="12" step="0.1" value="1.0" style="margin-bottom: 0.6rem;">
+                    
+                    <div style="display: flex; gap: 0.4rem; width: 100%;">
+                      <button class="btn btn-danger btn-block" id="btn-crash-high" style="padding: 0.4rem; font-size: 0.7rem; border-radius: 8px;">
+                        <i class="fa-solid fa-car-burst"></i> Major Crash (9.5G)
+                      </button>
+                      <button class="btn btn-outline btn-block" id="btn-crash-low" style="padding: 0.4rem; font-size: 0.7rem; border-radius: 8px; color: var(--color-orange); border-color: rgba(245, 158, 11, 0.4);">
+                        <i class="fa-solid fa-car-side"></i> Minor Bump (3.8G)
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Diagnostics Simulator -->
+                <div style="margin-bottom: 1rem;">
+                  <h4 style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.5rem;"><i class="fa-solid fa-microchip" style="color: var(--color-green)"></i> Diagnostics & Health Tweaker</h4>
+                  <div class="dash-card" style="padding: 0.6rem; background: rgba(0,0,0,0.2); margin-bottom: 0.5rem; border-color: rgba(255,255,255,0.03); display: flex; flex-direction: column; gap: 0.5rem;">
+                    <div class="switch-container" style="font-size: 0.7rem;">
+                      <span>Engine Check Light</span>
+                      <label class="switch" style="transform: scale(0.85);">
+                        <input type="checkbox" id="sim-engine-check">
+                        <span class="slider"></span>
+                      </label>
+                    </div>
+
+                    <div>
+                      <div style="display: flex; justify-content: space-between; font-size: 0.65rem; color: var(--text-secondary); margin-bottom: 0.2rem;">
+                        <span>Battery Health</span>
+                        <span id="lbl-battery" style="color: var(--color-blue); font-weight: bold;">94% (Good)</span>
+                      </div>
+                      <input type="range" id="sim-battery" min="5" max="100" step="1" value="94">
+                    </div>
+
+                    <div>
+                      <div style="display: flex; justify-content: space-between; font-size: 0.65rem; color: var(--text-secondary); margin-bottom: 0.2rem;">
+                        <span>Tire Pressure</span>
+                        <span id="lbl-tyre" style="color: var(--color-blue); font-weight: bold;">32 PSI (Ideal)</span>
+                      </div>
+                      <input type="range" id="sim-tyre" min="15" max="45" step="1" value="32">
+                    </div>
+
+                    <div class="switch-container" style="font-size: 0.7rem;">
+                      <span>Brake Wear Alert</span>
+                      <label class="switch" style="transform: scale(0.85);">
+                        <input type="checkbox" id="sim-brake-alert">
+                        <span class="slider"></span>
+                      </label>
+                    </div>
+
+                    <button class="btn btn-primary btn-block" id="btn-update-diagnostics" style="padding: 0.4rem; font-size: 0.7rem; border-radius: 8px; margin-top: 0.2rem;">
+                      <i class="fa-solid fa-rotate"></i> Push Diagnostics to App
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Environmental & Speed Controls -->
+                <div style="margin-bottom: 0.75rem;">
+                  <h4 style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.5rem;"><i class="fa-solid fa-cloud-sun" style="color: var(--color-blue)"></i> Environment & Speed</h4>
+                  <div class="dash-card" style="padding: 0.6rem; background: rgba(0,0,0,0.2); margin-bottom: 0; border-color: rgba(255,255,255,0.03); display: flex; flex-direction: column; gap: 0.5rem;">
+                    <div class="switch-container" style="font-size: 0.7rem;">
+                      <span>Cellular/GPS Network Link</span>
+                      <label class="switch" style="transform: scale(0.85);">
+                        <input type="checkbox" id="sim-network" checked>
+                        <span class="slider"></span>
+                      </label>
+                    </div>
+
+                    <div>
+                      <div style="display: flex; justify-content: space-between; font-size: 0.65rem; color: var(--text-secondary); margin-bottom: 0.2rem;">
+                        <span>Driving Speed</span>
+                        <span id="lbl-speed" style="color: var(--color-blue); font-weight: bold;">45 mph</span>
+                      </div>
+                      <input type="range" id="sim-speed" min="0" max="110" step="1" value="45">
+                    </div>
+                    
+                    <button class="btn btn-outline btn-block" id="btn-move-loc" style="padding: 0.4rem; font-size: 0.7rem; border-radius: 8px; color: var(--color-blue); border-color: rgba(14, 165, 233, 0.4); margin-top: 0.2rem;">
+                      <i class="fa-solid fa-map-location-dot"></i> Move to High-Hazard Zone
+                    </button>
+                  </div>
+                </div>
+
+                <div style="font-size: 0.65rem; text-align: center; color: var(--text-muted); border-top: 1px solid rgba(255,255,255,0.05); padding-top: 0.5rem; margin-top: 0.75rem;">
+                  Project: <strong>Road Rescue System</strong> v1.0.0
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ACTIVE CHAT VIEW OVERLAY -->
+        <div class="screen" id="screen-chat" style="padding-bottom: 1.5rem; z-index: 150; background: #020617;">
+          <div class="screen-header" style="margin-bottom: 0.5rem;">
+            <div style="display:flex; align-items:center; gap: 0.75rem;">
+              <button onclick="closeChat()" style="background:transparent; border:none; color:white; cursor:pointer; font-size: 1.1rem;">
+                <i class="fa-solid fa-chevron-left"></i>
+              </button>
+              <div>
+                <h3 id="chat-participant-name" style="font-family: var(--font-family); font-size: 1.1rem; font-weight: 700;">Dispatcher</h3>
+                <p style="font-size: 0.65rem; color: var(--color-green); margin:0;">Live coordination channel</p>
+              </div>
+            </div>
+          </div>
+          
+          <div class="chat-container">
+            <div class="chat-messages" id="chat-box">
+              <!-- Chat history logs populated here -->
+            </div>
+            <div class="chat-inputs">
+              <input type="text" class="chat-input" id="chat-input-text" placeholder="Type coordinate updates...">
+              <button class="chat-send-btn" id="btn-send-message"><i class="fa-solid fa-paper-plane"></i></button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- DISPATCH TRACKING PROGRESS PANEL OVERLAY -->
+      <div class="dispatch-overlay" id="dispatch-progress-overlay">
+        <div class="dispatch-header">
+          <h4 id="dispatch-title"><i class="fa-solid fa-ambulance"></i> Emergency Dispatch</h4>
+          <button onclick="cancelRescueRequest()" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer;">
+            <i class="fa-solid fa-circle-xmark"></i>
+          </button>
+        </div>
+        <div class="dash-card" style="padding: 0.75rem; background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.05); margin-bottom: 0;">
+          <div style="display:flex; justify-content:space-between; font-size: 0.75rem;">
+            <span>Responder: <strong style="color:white;" id="dispatch-provider-name">Apex Tow Truck</strong></span>
+            <span>ETA: <strong style="color:var(--color-green);" id="dispatch-eta">Calculating...</strong></span>
+          </div>
+        </div>
+        <div class="dispatch-steps" id="dispatch-steps-list">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <!-- SOS EMERGENCY ACTIVE COUNTDOWN SCREEN OVERLAY -->
+      <div class="sos-overlay" id="sos-countdown-screen">
+        <div class="sos-overlay-header">
+          <h2>SOS INITIATING</h2>
+          <p>Crash Sensors Triggered Alert</p>
+        </div>
+
+        <div class="sos-countdown-circle">
+          <svg class="sos-countdown-svg">
+            <circle class="sos-countdown-bg" cx="90" cy="90" r="80"></circle>
+            <circle class="sos-countdown-progress" id="sos-progress-bar" cx="90" cy="90" r="80" stroke-dasharray="502" stroke-dashoffset="0"></circle>
+          </svg>
+          <div class="sos-countdown-number" id="sos-secs-left">5</div>
+        </div>
+
+        <div class="sos-severity-box">
+          <div class="label">AI Accident Severity</div>
+          <div class="val" id="sos-severity-val">Critical Impact (8.8G)</div>
+        </div>
+
+        <button class="btn btn-danger btn-block" style="border-radius: 16px; padding: 1rem; box-shadow: 0 10px 25px rgba(244,63,94,0.3);" onclick="cancelActiveSOS()">
+          <i class="fa-solid fa-ban"></i> CANCEL (False Alarm)
+        </button>
+      </div>
+
+      <!-- BOTTOM NAVIGATION TAB BAR -->
+      <div class="phone-navbar" id="app-bottom-navbar">
+        <!-- Desktop Sidebar Header Logo -->
+        <div class="sidebar-logo" style="display: none; align-items: center; gap: 0.75rem; padding-bottom: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 1.5rem; width: 100%;">
+          <div style="width: 42px; height: 42px; border-radius: 12px; background: rgba(244, 63, 94, 0.1); border: 1.5px solid rgba(244, 63, 94, 0.2); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <i class="fa-solid fa-truck-medical" style="color: var(--color-red); font-size: 1.25rem;"></i>
+          </div>
+          <div>
+            <h4 style="font-family: var(--font-family); font-weight: 800; font-size: 0.95rem; color: white; letter-spacing: 0.5px; margin: 0; text-align: left;">ROAD RESCUE</h4>
+            <p style="font-size: 0.58rem; color: var(--text-muted); margin: 0; text-align: left;">Safety Dashboard</p>
+          </div>
+        </div>
+
+        <div class="nav-item active" onclick="showTab('home')">
+          <i class="fa-solid fa-house"></i>
+          <span>Home</span>
+        </div>
+        <div class="nav-item" onclick="showTab('services')">
+          <i class="fa-solid fa-list-check"></i>
+          <span>Services</span>
+        </div>
+        
+        <!-- Big SOS floating action button -->
+        <div class="nav-item-sos" onclick="triggerSOSImmediate()">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <span>SOS</span>
+        </div>
+
+        <div class="nav-item" onclick="showTab('activity')">
+          <i class="fa-solid fa-chart-line"></i>
+          <span>Activity</span>
+        </div>
+        <div class="nav-item" onclick="showTab('contacts')">
+          <i class="fa-solid fa-address-book"></i>
+          <span>Contacts</span>
+        </div>
+      </div>
+      
+    </div>
+
+  </div>
+
+  <!-- MODALS -->
+  <!-- 1. Road Hazard Reporting Modal -->
+  <div class="modal-overlay" id="hazard-modal">
+    <div class="modal-content">
+      <h3><i class="fa-solid fa-circle-radiation" style="color:var(--color-orange)"></i> Report Hazard</h3>
+      <div class="form-field">
+        <label>Hazard Type</label>
+        <select id="hz-form-type">
+          <option value="Pothole">Pothole</option>
+          <option value="Accident">Accident Scene</option>
+          <option value="Road Debris">Road Debris / Object</option>
+          <option value="Traffic Lock">Heavy Traffic Jam</option>
+          <option value="Weather Danger">Weather Danger (Ice, Flood)</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label>Brief Description</label>
+        <input type="text" id="hz-form-desc" placeholder="e.g. Deep hole in center lane.">
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-outline btn-block" onclick="closeHazardModal()">Cancel</button>
+        <button class="btn btn-primary btn-block" onclick="submitRoadHazard()">Submit Report</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Roadside Assistance Request Modal -->
+  <div class="modal-overlay" id="assistance-modal">
+    <div class="modal-content" style="max-height: 85%; overflow-y: auto;">
+      <h3 id="ast-modal-title"><i class="fa-solid fa-truck-pickup" style="color:var(--color-blue)"></i> Request Roadside</h3>
+      
+      <!-- List of nearest shops/providers -->
+      <div id="ast-provider-section" style="margin: 0.8rem 0;">
+        <label style="font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px;">Nearest Providers & Shops</label>
+        <div id="ast-provider-list" style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.4rem;">
+          <!-- Dynamically populated cards -->
+        </div>
+      </div>
+      
+      <!-- Options for selected provider -->
+      <div id="ast-form-section" style="display: none; border-top: 1px solid var(--border-color); padding-top: 0.6rem; margin-top: 0.6rem;">
+        <div class="form-field" style="margin-bottom: 0.5rem;">
+          <label>Selected Service Provider</label>
+          <input type="text" id="ast-form-provider-name" readonly style="background: rgba(255,255,255,0.03); color: white; font-weight: bold; border-color: rgba(255,255,255,0.05);">
+        </div>
+        <div class="form-field" style="margin-bottom: 0.5rem;">
+          <label>Estimated Cost</label>
+          <p style="font-weight: 700; color: var(--color-green); font-size: 0.88rem;" id="ast-form-cost">₹0.00 (Covered by HDFC ERGO Assist)</p>
+        </div>
+        <div class="form-field">
+          <label>Note to Provider</label>
+          <input type="text" id="ast-form-note" placeholder="Describe what you need..." style="border-color: rgba(255,255,255,0.08);">
+        </div>
+        
+        <!-- Live Location sharing check -->
+        <div class="switch-container" style="margin: 0.6rem 0; font-size: 0.78rem;">
+          <span style="color: var(--text-secondary);"><i class="fa-solid fa-location-crosshairs" style="color: var(--color-blue)"></i> Share Live GPS Location</span>
+          <label class="switch" style="transform: scale(0.85);">
+            <input type="checkbox" id="ast-share-location" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        
+        <div class="modal-actions" style="margin-top: 0.8rem; gap: 0.4rem; display: flex;">
+          <!-- Call Option button -->
+          <button class="btn btn-outline" id="ast-btn-call" style="flex: 1; padding: 0.6rem; font-size: 0.82rem;" onclick="callSelectedProvider()">
+            <i class="fa-solid fa-phone" style="color: var(--color-green);"></i> Call Shop
+          </button>
+          <!-- Request Option button -->
+          <button class="btn btn-primary" id="ast-btn-request" style="flex: 1.8; padding: 0.6rem; font-size: 0.82rem; background: var(--color-blue);" onclick="submitAssistanceRequest()">
+            <i class="fa-solid fa-truck-moving"></i> Request Dispatch
+          </button>
+        </div>
+      </div>
+      
+      <div class="modal-actions" style="margin-top: 1rem;">
+        <button class="btn btn-outline btn-block" onclick="closeAssistanceModal()" style="border-color: rgba(255,255,255,0.08); font-size: 0.82rem; padding: 0.6rem;">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Survival and First-Aid Booklet Modal -->
+  <div class="modal-overlay" id="manual-modal">
+    <div class="modal-content" style="max-height: 80%; overflow-y: auto;">
+      <h3 style="color:var(--color-blue); margin-bottom: 0.5rem;"><i class="fa-solid fa-book-medical"></i> Emergency Manual</h3>
+      <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom: 1rem;">Click a topic to read safety steps.</p>
+      
+      <div style="display:flex; flex-direction:column; gap:0.5rem;">
+        <div class="dash-card" style="padding:0.6rem; margin-bottom:0; background:rgba(255,255,255,0.03); cursor:pointer;" onclick="showManualSection('cpr')">
+          <h5 style="font-weight:700; color:var(--color-red);"><i class="fa-solid fa-heart-pulse"></i> CPR & Bleeding Control</h5>
+          <p style="font-size:0.65rem; color:var(--text-muted); margin-top:2px;">Immediate steps for cardiac and severe wound emergencies.</p>
+        </div>
+        
+        <div class="dash-card" style="padding:0.6rem; margin-bottom:0; background:rgba(255,255,255,0.03); cursor:pointer;" onclick="showManualSection('tyre')">
+          <h5 style="font-weight:700; color:var(--color-green);"><i class="fa-solid fa-wrench"></i> Changing a Flat Tyre</h5>
+          <p style="font-size:0.65rem; color:var(--text-muted); margin-top:2px;">How to safely secure the jack and replace flat wheels on highways.</p>
+        </div>
+        
+        <div class="dash-card" style="padding:0.6rem; margin-bottom:0; background:rgba(255,255,255,0.03); cursor:pointer;" onclick="showManualSection('heat')">
+          <h5 style="font-weight:700; color:var(--color-orange);"><i class="fa-solid fa-temperature-high"></i> Overheating Engine Tips</h5>
+          <p style="font-size:0.65rem; color:var(--text-muted); margin-top:2px;">Warning indicators, coolant refills, and pressure relief safeguards.</p>
+        </div>
+      </div>
+      
+      <!-- Details Sub-viewer -->
+      <div id="manual-detail-view" style="display:none; margin-top:1rem; border-top:1px solid var(--border-color); padding-top:0.75rem; font-size:0.75rem; line-height:1.4;">
+        <h4 id="manual-detail-title" style="margin-bottom:0.4rem; color:white;">Section Title</h4>
+        <div id="manual-detail-text" style="color:var(--text-secondary); max-height:120px; overflow-y:auto; padding-right:5px;">Section content...</div>
+      </div>
+      
+      <div class="modal-actions" style="margin-top:1.25rem;">
+        <button class="btn btn-outline btn-block" onclick="closeManualModal()">Close Booklet</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Ambulance Choice Modal -->
+  <div class="modal-overlay" id="ambulance-modal">
+    <div class="modal-content" style="text-align: center; border-radius: 20px; background: #0b1329; border: 1px solid rgba(244, 63, 94, 0.2);">
+      <div style="display: inline-flex; width: 60px; height: 60px; border-radius: 50%; background: rgba(244, 63, 94, 0.1); border: 1.5px solid rgba(244, 63, 94, 0.2); align-items: center; justify-content: center; margin-bottom: 1rem;">
+        <i class="fa-solid fa-truck-medical" style="color: var(--color-red); font-size: 1.8rem;"></i>
+      </div>
+      <h3 style="margin-bottom: 0.5rem; font-family: var(--font-family); color: white;">Ambulance Services</h3>
+      <p style="font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 1.5rem; line-height: 1.45;">
+        Would you like to initiate a voice call to the nearest ambulance (emergency number <strong>108</strong>), or message a dispatcher coordinates instead?
+      </p>
+      <div style="display: flex; flex-direction: column; gap: 0.6rem;">
+        <button class="btn btn-danger btn-block" onclick="callAmbulanceDirectly()" style="border-radius: 12px; padding: 0.75rem; font-weight: 700;">
+          <i class="fa-solid fa-phone"></i> Call Emergency (108)
+        </button>
+        <button class="btn btn-primary btn-block" onclick="messageAmbulanceDispatcher()" style="border-radius: 12px; padding: 0.75rem; font-weight: 700; background: var(--color-blue);">
+          <i class="fa-solid fa-comments"></i> Message Dispatcher
+        </button>
+        <button class="btn btn-outline btn-block" onclick="closeAmbulanceModal()" style="border-radius: 12px; padding: 0.75rem; font-weight: 600; border-color: rgba(255,255,255,0.08);">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Leaflet Map JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Application JS Logic -->
+  <script src="app.js"></script>
+</body>
+</html>
