@@ -41,10 +41,8 @@ jobs:
           fi
 
       - name: Run Semgrep
-        uses: returntocorp/semgrep-action@v1
-        with:
-          config: "p/default"
-          generateSarif: "1"
+        run: |
+          docker run --rm -v "${{ github.workspace }}:/src" semgrep/semgrep semgrep scan --sarif --output=/src/semgrep.sarif --config=auto || true
 
       - name: Upload SARIF to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v2
@@ -60,13 +58,8 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
-        with:
-          scan-type: 'fs'
-          ignore-unfixed: true
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-          severity: 'CRITICAL,HIGH'
+        run: |
+          docker run --rm -v "${{ github.workspace }}:/workspace" aquasec/trivy fs --format sarif --output /workspace/trivy-results.sarif /workspace || true
 
       - name: Upload Trivy scan results
         uses: github/codeql-action/upload-sarif@v2

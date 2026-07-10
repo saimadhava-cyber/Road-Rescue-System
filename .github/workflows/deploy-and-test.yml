@@ -66,22 +66,19 @@ jobs:
           timeout 120 bash -c 'until curl -s -f ${{ steps.deployment.outputs.page_url }}; do sleep 5; done'
           echo "Deployment is live!"
 
-      # Setup Chrome for Selenium
-      - name: Setup Chrome
-        uses: browser-actions/setup-chrome@v1
-      - name: Setup ChromeDriver
-        uses: nanasess/setup-chromedriver@v2
+
+
+      - name: Start Express Server in Background
+        run: |
+          node server.js &
+          sleep 3 # Allow server to boot
 
       - name: Run Selenium Tests Against Live URL
         env:
-          BASE_URL: ${{ steps.deployment.outputs.page_url }}
+          BASE_URL: ${{ steps.deployment.outputs.page_url }}?api=http://localhost:5000/api
           GITHUB_ACTIONS: true
         run: |
-          export DISPLAY=:99
-          chromedriver --url-base=/wd/hub &
-          sudo Xvfb -ac :99 -screen 0 1280x1024x24 > /dev/null 2>&1 &
-          
-          # Run tests with Mocha
+          # Run tests with Mocha (Selenium Manager automatically manages Chrome and ChromeDriver)
           npx mocha ./globalHooks.js ./selenium-tests/specs/web-e2e.spec.js --timeout 120000 --exit
 
       - name: Upload Test Reports Artifacts
