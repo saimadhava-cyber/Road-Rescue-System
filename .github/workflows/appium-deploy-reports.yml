@@ -36,7 +36,7 @@ jobs:
           cache: 'npm'
 
       - name: Install Dependencies
-        run: npm ci
+        run: npm install
 
       - name: Build Android Debug APK
         run: |
@@ -114,7 +114,7 @@ jobs:
           cp -r new-reports/* public/reports/history/build-${{ github.run_number }}/
 
       - name: Setup Pages
-        uses: actions/configure-pages@v3
+        uses: actions/configure-pages@v5
 
       - name: Upload Pages Artifact
         uses: actions/upload-pages-artifact@v3

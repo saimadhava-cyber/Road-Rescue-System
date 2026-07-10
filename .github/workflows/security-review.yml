@@ -45,7 +45,7 @@ jobs:
           docker run --rm -v "${{ github.workspace }}:/src" semgrep/semgrep semgrep scan --sarif --output=/src/semgrep.sarif --config=auto || true
 
       - name: Upload SARIF to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
           sarif_file: semgrep.sarif
@@ -62,7 +62,7 @@ jobs:
           docker run --rm -v "${{ github.workspace }}:/workspace" aquasec/trivy fs --format sarif --output /workspace/trivy-results.sarif /workspace || true
 
       - name: Upload Trivy scan results
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
           sarif_file: 'trivy-results.sarif'
