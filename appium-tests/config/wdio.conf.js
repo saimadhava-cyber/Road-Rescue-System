@@ -25,17 +25,14 @@ exports.config = {
     capabilities: [{
         platformName: 'Android',
         'appium:automationName': 'UiAutomator2',
-        // Optional: Specify an explicit device name or UUID if needed
-        // 'appium:deviceName': 'Pixel_6_Pro_API_33',
-        
-        // This will connect to the Capacitor app installed on the device.
-        // Update the appPackage and appActivity if they differ in your Capacitor project.
+        // Support installing built APK in CI/CD environment
+        'appium:app': process.env.APK_PATH || undefined,
         'appium:appPackage': 'com.roadrescue.app',
         'appium:appActivity': 'com.roadrescue.app.MainActivity',
         
         // Automatically switch to WebView context since this is a Capacitor App
         'appium:autoWebview': true,
-        'appium:noReset': true
+        'appium:noReset': process.env.APK_PATH ? false : true
     }],
 
     // ===================

@@ -18,6 +18,44 @@ const ExcelJS    = require('exceljs');
 const fs         = require('fs');
 const path       = require('path');
 const http       = require('http');
+// ----------------------------------------------------------------
+// AUTO-START BACKEND SERVER FOR LOAD TEST
+// ----------------------------------------------------------------
+const { spawn } = require('child_process');
+let serverProcess = null;
+function startBackend() {
+  return new Promise((resolve, reject) => {
+    // Spawn the server in a separate process
+    serverProcess = spawn('node', ['server.js'], {
+      cwd: path.resolve(__dirname, '..'),
+      stdio: ['ignore', 'pipe', 'pipe']
+    });
+    let started = false;
+    serverProcess.stdout.on('data', data => {
+      const msg = data.toString();
+      if (!started && msg.includes('Road Rescue Backend running')) {
+        started = true;
+        resolve();
+      }
+      process.stdout.write(`[SERVER] ${msg}`);
+    });
+    serverProcess.stderr.on('data', data => {
+      process.stderr.write(`[SERVER-ERR] ${data}`);
+    });
+    serverProcess.on('error', err => reject(err));
+    // Fallback timeout if server doesn't emit ready line
+    setTimeout(() => {
+      if (!started) resolve(); // continue anyway; waitForServer will poll
+    }, 3000);
+  });
+}
+function stopBackend() {
+  if (serverProcess) {
+    serverProcess.kill();
+    serverProcess = null;
+  }
+}
+
 
 // ──────────────────────────────────────────────────────────────
 // CONFIG
@@ -388,10 +426,13 @@ async function generateExcel(r, avgRPS, lat, overallPass) {
 // ──────────────────────────────────────────────────────────────
 (async () => {
     try {
+        await startBackend();
         await waitForServer(BASE_URL);
         await runLoadTest();
     } catch (err) {
         console.error('\n❌ Fatal error:', err.message);
         process.exit(1);
+    } finally {
+        stopBackend();
     }
 })();
