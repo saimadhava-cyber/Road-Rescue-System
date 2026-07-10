@@ -6,9 +6,11 @@
   "scripts": {
     "build": "echo build done",
     "start": "node server.js",
-    "test:e2e": "wdio run ./appium-tests/config/wdio.conf.js",
-    "test:web": "mocha ./selenium-tests/specs/**/*.spec.js --timeout 60000 --exit",
-    "test:all": "npm run test:web && npm run test:e2e"
+    "test:appium": "wdio run ./appium-tests/config/wdio.conf.js",
+    "test:web": "mocha ./globalHooks.js ./selenium-tests/specs/web-e2e.spec.js --timeout 120000 --exit",
+    "test:backend": "mocha ./backend-tests/backend-unit.spec.js ./backend-tests/backend-validation.spec.js ./backend-tests/backend-load.spec.js --timeout 180000 --exit",
+    "test:load": "node ./backend-tests/load-test.js",
+    "test:all": "npm run test:web && npm run test:backend"
   },
   "dependencies": {
     "@capacitor/android": "^6.0.0",
@@ -29,6 +31,7 @@
     "@wdio/spec-reporter": "^9.29.1",
     "appium": "^3.5.2",
     "appium-uiautomator2-driver": "^8.1.0",
+    "autocannon": "^8.0.0",
     "chai": "^6.2.2",
     "chromedriver": "^150.0.3",
     "exceljs": "^4.4.0",
