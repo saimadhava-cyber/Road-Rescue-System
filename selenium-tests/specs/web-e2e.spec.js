@@ -128,9 +128,11 @@ describe('Road Rescue Web Application — Full E2E Test Suite', function () {
     // ========================================
     describe('Login Flow', function () {
         it('TC-08: Should navigate to login screen', async function () {
-            await driver.executeScript("localStorage.clear();");
+            // Navigate to base URL and ensure page is loaded before clearing localStorage
             await driver.get(BASE_URL);
+            await driver.wait(until.elementLocated(By.id('screen-register')));
             await driver.sleep(500);
+            await driver.executeScript("localStorage.clear();");
             const loginLink = await driver.findElement(By.css('#screen-register a[onclick*="login"]'));
             await jsClick(driver, loginLink);
             await driver.sleep(500);
@@ -654,6 +656,12 @@ describe('Road Rescue Web Application — Full E2E Test Suite', function () {
         for (let i = 1; i <= 137; i++) {
             const testId = `TC-W-STO-${String(i).padStart(3, '0')}`;
             it(`${testId}: Ensure LocalStorage sync resilience for state snapshot ${i}`, async function () {
+                // Ensure we are on the same origin before accessing localStorage
+                await driver.get(BASE_URL);
+                // Wait for main UI to be ready before accessing localStorage
+                await driver.wait(until.elementLocated(By.id('screen-home')));
+                await driver.sleep(500);
+                await driver.sleep(200);
                 const key = `state_snap_${i}`;
                 const val = `value_${Math.random()}`;
                 await driver.executeScript(`localStorage.setItem('${key}', '${val}');`);
