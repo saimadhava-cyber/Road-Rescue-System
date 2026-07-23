@@ -35,7 +35,7 @@
     "chai": "^4.3.10",
     "exceljs": "^4.4.0",
     "mocha": "^11.7.6",
-    "selenium-webdriver": "^4.45.0",
+    "selenium-webdriver": "^4.0.0",
     "supertest": "^7.2.2"
   }
 }

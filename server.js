@@ -11,9 +11,26 @@ const PORT = process.env.PORT || 5000;
 // --- Supabase Client ---
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
+let supabase;
 
-console.log(`[SUPABASE] Connecting to: ${supabaseUrl}`);
+if (supabaseUrl && supabaseKey) {
+  supabase = createClient(supabaseUrl, supabaseKey);
+  console.log(`[SUPABASE] Connecting to: ${supabaseUrl}`);
+} else {
+  console.warn('[SUPABASE] Credentials missing or incomplete. Using local mock fallback client.');
+  const makeMockChain = () => {
+    const chain = {};
+    const methods = ['from', 'select', 'insert', 'update', 'delete', 'eq', 'order', 'limit', 'maybeSingle', 'single'];
+    methods.forEach(m => {
+      chain[m] = () => chain;
+    });
+    chain.then = (resolve) => resolve({ data: null, error: { message: 'Supabase credentials missing' } });
+    return chain;
+  };
+  supabase = {
+    from: () => makeMockChain()
+  };
+}
 
 app.use(cors());
 app.use(bodyParser.json());
