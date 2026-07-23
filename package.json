@@ -32,7 +32,7 @@
     "appium": "^3.5.2",
     "appium-uiautomator2-driver": "^8.1.0",
     "autocannon": "^8.0.0",
-    "chai": "^6.2.2",
+    "chai": "^4.3.10",
     "chromedriver": "^130.0.0",
     "exceljs": "^4.4.0",
     "mocha": "^11.7.6",
