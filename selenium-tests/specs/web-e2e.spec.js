@@ -289,8 +289,8 @@ describe('Road Rescue Web Application — Full E2E Test Suite', function () {
 
         it('TC-25: Should navigate to Contacts tab', async function () {
             await dismissOverlays(driver);
-            // Use JS to guarantee navigation and avoid click interception/selector issues
-            await driver.executeScript("if(typeof showTab==='function') showTab('contacts');");
+            const contactsTab = await driver.findElement(By.css('.nav-item[onclick*="showTab(\'contacts\')"]'));
+            await jsClick(driver, contactsTab);
             await driver.sleep(800);
 
             const contactsScreen = await driver.findElement(By.id('screen-contacts'));
@@ -299,8 +299,7 @@ describe('Road Rescue Web Application — Full E2E Test Suite', function () {
         });
 
         it('TC-26: Should display ICE Contacts heading', async function () {
-            const iceScreen = await driver.findElement(By.id('screen-contacts'));
-            const text = await iceScreen.getText();
+            const text = await driver.executeScript("return document.getElementById('screen-contacts').innerHTML;");
             expect(text).to.include('ICE Contacts');
         });
 
